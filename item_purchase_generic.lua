@@ -62,7 +62,7 @@ function DoStuff()
 	if ( CurrentMP() < 121 ) then
 		UseItemByName( "item_enchanted_mango" );
 	end
-
+--[[
 	if ( MissingHP() >= 400 and GameTime() < 700 ) then
 		GiveHP();
 	end
@@ -70,9 +70,9 @@ function DoStuff()
 	if ( MissingMP() >= 200 and GameTime() < 700 ) then
 		GiveMana();
 	end
-	
-	if ( CanSell() and GameTime() > 750 ) then
-		ConsumablePurge();
+--]]	
+	if ( ( CanSell() and GameTime() > 750 ) and not HasSpareSlot() ) then
+		ItemRotation();
 	end
 
 	C9Prevention();
@@ -112,7 +112,7 @@ function TravelsDone()
 				SellItemByName("item_tpscroll");
 				return false; --wait until tp is sold and slot free
 			else
---				print("TravelsDone boots sale bots in stash");
+--				print("TravelsDone boots sale travels in stash");
 				SellOldBoots();
 				return false; --wait until old boots are sold and slot free
 			end

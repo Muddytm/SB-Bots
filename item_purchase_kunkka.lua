@@ -5,7 +5,7 @@ local tableItemsToBuy = {
 	"item_faerie_fire",
 	"item_enchanted_mango",
 	"item_flask",
-	"item_clarity",
+	"item_stout_shield",
 	"item_boots",
 	"item_blight_stone",
 	"item_sobi_mask",

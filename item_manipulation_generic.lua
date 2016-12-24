@@ -20,6 +20,7 @@ function C9Prevention()
 			end
 			if ( i > 5 and ( sCurItem:GetName() == "item_tpscroll" and npcBot:DistanceFromSideShop() == 0 ) ) then
 --				bot in side shop with tp in back/stash, likely wants to buy one to join a fight
+--				pity this doesn't work, bots will only sell items that are on them, not stuff in stash
 --				print("C9Prevention at side shop no tp in slots");
 				npcBot:Action_SellItem( sCurItem );
 				return; --attempt to buy tp on next loop
@@ -75,59 +76,48 @@ end
 function ClearSpaceAttempt()
 	
 --	print("ClearSpaceAttempt called");
+--	make sure to check inv is full before calling this!
+
 	local npcBot = GetBot();
---	print(npcBot:GetUnitName());
-	local slotNum = 14;
+	local slotNum = 11;
 	local hp = npcBot:GetMaxHealth() - npcBot:GetHealth();
 	local mp = npcBot:GetMaxMana() - npcBot:GetMana();
 	
-	if ( hp > 60 and hp < 350 ) then
---		print("ClearSpaceAttempt using faerie");
-		UseItemByName( "item_faerie_fire" );
+	if ( CanSell() ) then
+		ItemRotation();
 		return;
-	elseif ( hp > 350 ) then
---		print("ClearSpaceAttempt using flask");
-		UseItemByName ( "item_flask" );
-		return;
-	elseif ( mp > 140 ) then
---		print("ClearSpaceAttempt using mango");
-		UseItemByName( "item_enchanted_mango" );
-		return;
-	end
-	
-	if not ( HasSpareSlot() ) then
-		for i=0,5 do
-			local sCurItem = npcBot:GetItemInSlot( i );
-			if ( sCurItem:GetName() == "item_tango" ) then
-				if ( CanSell() ) then
---					print("ClearSpaceAttempt selling tango");
-					npcBot:Action_SellItem( sCurItem );
-					return;
---				else
---					print("ClearSpaceAttempt dropping tango");
---					DitchItem( sCurItem );
---					return;
-				end
-			elseif ( sCurItem:GetName() == "item_clarity" ) then
-				slotNum = i;
-			elseif ( sCurItem:GetName() == "item_faerie_fire" and slotNum > 13 ) then
---				don't put faerie fires into slots after flasks etc pls
-				slotNum = i;
-			elseif ( ( sCurItem:GetName() == "item_enchanted_mango" or sCurItem:GetName() == "item_flask" ) and slotNum > 13 ) then
-				slotNum = i;
-			end
-		end
-		
-		if ( slotNum < 14 ) then
-			local iDump = npcBot:GetItemInSlot( slotNum );
---			print("ClearSpaceAttempt selling or using");
---			print(iDump:GetName());
-			SellOrUseItem( iDump );
-			return;		
+	else
+		if ( hp > 60 and hp < 350 ) then
+--			print("ClearSpaceAttempt using faerie");
+			UseItemByName( "item_faerie_fire" );
+			return;
+		elseif ( hp > 350 ) then
+--			print("ClearSpaceAttempt using flask");
+			UseItemByName ( "item_flask" );
+			return;
+		elseif ( mp > 140 ) then
+--			print("ClearSpaceAttempt using mango");
+			UseItemByName( "item_enchanted_mango" );
+			return;
 		else
---			we're in trouble now
---			print("ClearSpaceAttempt failed, wtf is going on");
---			ListInv();
+			for i=0,5 do
+				local sCurItem = npcBot:GetItemInSlot( i );
+				if ( sCurItem:GetName() == "item_faerie_fire" ) then
+					npcBot:Action_UseAbility( sCurItem );
+					return;
+				elseif ( sCurItem:GetName() == "item_flask" ) then
+					slotNum = i;
+				elseif ( sCurItem:GetName() == "item_enchanted_mango" and slotNum > 10 ) then
+					slotNum = i;
+				end
+			end
+			if ( slotNum < 10 ) then
+				local iDump = npcBot:GetItemInSlot( slotNum );
+				npcBot:Action_UseAbility( iDump );
+				npcBot:Action_UseAbilityOnEntity( iDump , npcBot );
+			else
+				--no space can be made
+			end
 		end
 	end
 	
@@ -380,6 +370,20 @@ function HasTwoSpareSlots()
 end
 
 
+function IsInFountain()
+
+--	print("IsInFountain called");
+	local npcBot = GetBot();
+	
+	if ( npcBot:DistanceFromFountain() == 0 ) then return true;
+	else return false;
+	end
+	
+	return false;
+	
+end
+
+
 function IsItemInBack( itemName )
 
 --	print("IsItemInBack called");
@@ -467,6 +471,86 @@ function IsItemOnBot( itemName )
 	
 	return false;
 
+end
+
+
+function ItemRotation()
+
+--	print("ItemRotation called");
+--	makes sure to check inv is full before calling this!
+	local npcBot = GetBot();
+	local slotNum = 11;
+	
+	for i=0,8 do
+		local sCurItem = npcBot:GetItemInSlot( i );
+		if ( sCurItem ~= nil ) then
+			if ( sCurItem:GetName() == "item_clarity" ) then
+				npcBot:Action_SellItem( sCurItem );
+				return;
+			end
+			if ( sCurItem:GetName() == "item_flying_courier" ) then
+				npcBot:Action_SellItem( sCurItem );
+				return;
+			end
+			if ( ( i == 6 or i == 7 or i == 8 ) and ( sCurItem:GetName() == "item_tpscroll" or sCurItem:GetName() == "item_clarity" or sCurItem:GetName() == "item_flask" ) ) then
+--				print("ItemRotation tp/consumable in backpack");			
+				npcBot:Action_SellItem( sCurItem );
+				return;
+			end
+			if ( sCurItem:GetName() == "item_tango" ) then
+				slotNum = i;
+			elseif ( sCurItem:GetName() == "item_faerie_fire" ) then
+				if ( slotNum > 10 ) then
+					slotNum = i;
+				else
+					local item = npcBot:GetItemInSlot( slotNum );
+					if ( item:GetName() == "item_tango" ) then
+						--rather sell the tango
+					else
+						slotNum = i;
+					end
+				end
+			elseif ( sCurItem:GetName() == "item_flask" ) then
+				if ( slotNum > 10 ) then
+					slotNum = i;
+				else
+					local item = npcBot:GetItemInSlot( slotNum );
+					if ( item:GetName() == "item_tango" or item:GetName() == "item_faerie_fire" ) then
+						--rather sell the tango or faerie
+					else
+						slotNum = i;
+					end
+				end
+			elseif ( sCurItem:GetName() == "item_enchanted_mango" ) then
+				if ( slotNum > 10 ) then
+					slotNum = i;
+				else
+					local item = npcBot:GetItemInSlot( slotNum );
+					if ( item:GetName() == "item_tango" or item:GetName() == "item_faerie_fire" or item:GetName() == "item_flask" ) then
+						--rather sell the tango / faerie / flask
+					else
+						slotNum = i;
+					end
+				end
+			elseif ( sCurItem:GetName() == "item_stout_shield" or sCurItem:GetName() == "item_poor_mans_shield" ) then
+				if ( slotNum > 10 ) then
+					slotNum = i;
+				else
+					--rather sell anything else first
+				end
+			end
+		end
+	end
+	
+	if ( slotNum < 10 ) then
+		local item = npcBot:GetItemInSlot( slotNum );
+		npcBot:Action_SellItem( item );
+	else
+		--no items in inv to be rotated out
+--		ListInv();
+	end
+	
+	
 end
 
 
